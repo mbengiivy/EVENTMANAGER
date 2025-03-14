@@ -17,6 +17,8 @@ import logging
 from .models import EventbriteToken
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+import json
+from datetime import datetime
 
 User = get_user_model()
 load_dotenv()
@@ -71,66 +73,55 @@ class EventViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def create_with_openai(self, request):
         name = request.data.get('name')
-        date = request.data.get('date') # Assuming this is a date string like "2024-03-20T10:00:00Z"
-        timezone = "Africa/Nairobi" # Replace with the correct timezone for Kenya
+        date_str = request.data.get('date')  # Get the date string from the request
+        timezone = "Africa/Nairobi"  # Replace with the correct timezone
 
-        if not name or not date:
+        if not name or not date_str:
             return Response({'error': 'Name and date are required.'},
                             status=status.HTTP_400_BAD_REQUEST)
-        with unittest.mock.patch('openai.chat.completions.create') as mock_openai_create:
-            # 1. Configure the mock to return a specific response
-                mock_response = unittest.mock.Mock()
-                mock_message = unittest.mock.Mock()
-                mock_message.content = "This is a mock OpenAI response with a detailed event description."  # Your mock content
-                mock_response.choices = [unittest.mock.Mock(message=mock_message)]
-                mock_openai_create.return_value = mock_response
-        try:
-            # 1. Get the Eventbrite App Token
-            eventbrite_app_token = os.getenv("EVENTBRITE_APP_TOKEN")
-            """  # 2. Generate event description with OpenAI
-            prompt = (
-                f"I have an event named {name} on {date}. "
-                "Give me a detailed structure for planning this event, "
-                "including a description, agenda, and key tasks."
-            )
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-            )
-            openai_response = response.choices[0].message['content']
- """
-            # 3. Prepare data for Eventbrite API
-            eventbrite_data = {
-                'event': {
-                    'name': {
-                        'html': name
-                    },
-                    'start': {
-                        'timezone': timezone,
-                        'utc': date  # Use the provided date as the utc
-                    },
-                    'end': {
-                        'timezone': timezone,
-                        'utc': date  # Use the provided date as the utc
-                    },
-                    'currency': 'KES' # using Kenyan Shilling
-                }
-            }
-            logger.debug(f"Eventbrite data: {eventbrite_data}")
 
-            # 4. Call Eventbrite API
+        try:
+            eventbrite_app_token = os.getenv("EVENTBRITE_APP_TOKEN")
+
+            # Convert date string to Eventbrite's expected format
+            # Assuming date_str is in a format like "2024-03-15T10:00:00Z"
+            # If it's not, you'll need to parse it accordingly
+            # This part might need to be adjusted based on your input format
+            utc_date_str = date_str
+
+            eventbrite_data = {
+                'name': {
+                    'html': name
+                },
+                'start': {
+                    'timezone': timezone,
+                    'utc': utc_date_str
+                },
+                'end': {
+                    'timezone': timezone,
+                    'utc': utc_date_str
+                },
+                'currency': 'KES'
+            }
+
+            # Convert the dictionary to a JSON string
+            json_data = json.dumps(eventbrite_data)
+
+            logger.debug(f"Eventbrite data (JSON): {json_data}")
+
             headers = {
                 'Authorization': f'Bearer {eventbrite_app_token}',
                 'Content-Type': 'application/json',
             }
 
+            organization_id = "YOUR_ORGANIZATION_ID"  # NEED TO OBTAIN THIS
             eventbrite_response = requests.post(
-                'https://www.eventbriteapi.com/v3/events/',
+                f'https://www.eventbriteapi.com/v3/organizations/{organization_id}/events/',
                 headers=headers,
-                json=eventbrite_data,
+                data=json_data,  # Use data=json_data
             )
 
-            eventbrite_response.raise_for_status()  # Raise HTTPError for bad responses
+            eventbrite_response.raise_for_status()
             eventbrite_event = eventbrite_response.json()
 
             # 5. Create the event in your database

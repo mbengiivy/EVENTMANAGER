@@ -7,8 +7,8 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="api/register" element={<Registration />} />
-        <Route path="api/login" element={<Login />} />
+        <Route path="/api/events/register" element={<Registration />} />
+        <Route path="/api/login" element={<Login />} />
         {/* Add more routes later */}
       </Routes>
     </Router>

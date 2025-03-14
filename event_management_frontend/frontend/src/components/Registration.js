@@ -17,7 +17,7 @@ const Registration = () => {
         setSuccess('');
 
         try {
-            const response = await axios.post('/api/register/', { // Replace with your actual API endpoint
+            const response = await axios.post('/api/events/register/', { // Replace with your actual API endpoint
                 name,
                 username,
                 email,
