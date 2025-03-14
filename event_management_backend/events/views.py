@@ -1,24 +1,20 @@
-from rest_framework import generics, permissions, status
-from rest_framework.response import Response
-from django.contrib.auth import get_user_model
-from .serializers import UserSerializer
-from django.contrib.auth import authenticate
-from rest_framework import viewsets, permissions
-from .models import Event, Task
-from .serializers import EventSerializer, TaskSerializer
-from django.contrib.auth import get_user_model
-from rest_framework.decorators import action, api_view
-import openai
-import requests
-import os 
-import unittest.mock
-from dotenv import load_dotenv
-import logging
-from .models import EventbriteToken
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
+import os
 import json
+import logging
+import requests
+import openai
+import unittest.mock
 from datetime import datetime
+from dotenv import load_dotenv
+
+from django.contrib.auth import authenticate, get_user_model
+from rest_framework import generics, permissions, status, viewsets
+from rest_framework.response import Response
+from rest_framework.decorators import action, api_view
+from rest_framework.permissions import AllowAny
+
+from .models import Event, Task, EventbriteToken
+from .serializers import EventSerializer, TaskSerializer, UserSerializer
 
 User = get_user_model()
 load_dotenv()
@@ -47,13 +43,13 @@ class UserLoginView(generics.CreateAPIView):
 
         if user:
             return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
-        else:
-            return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AllowAny]
     
 
     def get_queryset(self):
@@ -65,6 +61,11 @@ class EventViewSet(viewsets.ModelViewSet):
         return Event.objects.none()
     
     
+        if hasattr(user, 'role'):  # Check if 'role' attribute exists
+            if user.role == 'captain':
+                return Event.objects.filter(captain=user)
+            elif user.role == 'team_member':
+                return Event.objects.filter(team_members=user)
 
     # def perform_create(self, serializer):
     #    serializer.save(chief_planner=self.request.user,

@@ -26,7 +26,15 @@ class UserSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'role')
+        fields = ['id', 'username', 'password', 'role', 'companycode']
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def create(self, validated_data):
+        password = validated_data.pop('password')  # Remove password from validated_data
+        user = User(**validated_data)  # Create user without setting password
+        user.set_password(password)  # Hash the password properly
+        user.save()  # Save the user
+        return user
 
 class EventSerializer(serializers.ModelSerializer):
     chief_planner = UserSerializer(read_only=True)
