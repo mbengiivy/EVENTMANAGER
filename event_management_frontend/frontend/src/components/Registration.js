@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import axios from '../api';
 
 const Registration = () => {
     const [name, setName] = useState('');
@@ -17,7 +17,7 @@ const Registration = () => {
         setSuccess('');
 
         try {
-            const response = await axios.post('/api/events/register/', { // Replace with your actual API endpoint
+            const response = await axios.post('http://127.0.0.1:8000/api/register/', { 
                 name,
                 username,
                 email,
@@ -28,6 +28,8 @@ const Registration = () => {
 
             setSuccess('Registration successful!');
             // Optionally, redirect to login page
+            console.log(response.data); // Output the server's response
+
         } catch (err) {
             setError(err.response?.data?.error || 'Registration failed.');
         }

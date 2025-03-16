@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import axios from '../api';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const Login = () => {
@@ -13,7 +13,7 @@ const Login = () => {
         setError('');
 
         try {
-            const response = await axios.post('/api/login/', { // Replace with your actual API endpoint
+            const response = await axios.post('http://localhost:8000/api/login/', {
                 username,
                 password,
             });

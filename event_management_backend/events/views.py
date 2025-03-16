@@ -12,7 +12,8 @@ from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view
 from rest_framework.permissions import AllowAny
-
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from .models import Event, Task, EventbriteToken
 from .serializers import EventSerializer, TaskSerializer, UserSerializer
 
@@ -27,6 +28,7 @@ eventbrite_app_token = os.getenv("EVENTBRITE_APP_TOKEN")
 
 logger = logging.getLogger(__name__)
 
+@method_decorator(csrf_exempt, name='dispatch')
 class UserRegistrationView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -59,7 +61,7 @@ class EventViewSet(viewsets.ModelViewSet):
         elif user.role == 'crew':
             return Event.objects.filter(tasks__assigned_to=user, companycode=user.companycode).distinct()
         return Event.objects.none()
-    
+     
     
         if hasattr(user, 'role'):  # Check if 'role' attribute exists
             if user.role == 'captain':
