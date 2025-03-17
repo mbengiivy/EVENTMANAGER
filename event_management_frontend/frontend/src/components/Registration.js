@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from '../api';
+import axios from 'axios';
 
 const Registration = () => {
     const [name, setName] = useState('');
@@ -27,10 +27,13 @@ const Registration = () => {
             });
 
             setSuccess('Registration successful!');
+            window.location.href = '/api/login';
             // Optionally, redirect to login page
             console.log(response.data); // Output the server's response
+            console.log("Registration Success:", response.data);
 
         } catch (err) {
+            console.error("Registration Error:", err.response?.data || err.message);
             setError(err.response?.data?.error || 'Registration failed.');
         }
     };

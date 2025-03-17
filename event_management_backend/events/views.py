@@ -10,22 +10,33 @@ from dotenv import load_dotenv
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from .models import Event, Task, EventbriteToken
-from .serializers import EventSerializer, TaskSerializer, UserSerializer
 
-User = get_user_model()
+from .models import Event, Task, EventbriteUser, EventbriteEvent
+from .serializers import EventSerializer, TaskSerializer, UserSerializer
+from rest_framework.authtoken.models import Token 
+from eventbrite import Eventbrite
+from django.conf import settings
+from django.shortcuts import redirect
+from django.utils import timezone
+
+# Load environment variables
 load_dotenv()
 
+# Get User model
+User = get_user_model()
+
+# Set API keys
 openai.api_key = os.getenv('OPENAI_API_KEY')
 EVENTBRITE_CLIENT_ID = os.getenv('EVENTBRITE_CLIENT_ID')
 EVENTBRITE_CLIENT_SECRET = os.getenv('EVENTBRITE_CLIENT_SECRET')
 EVENTBRITE_REDIRECT_URI = os.getenv('EVENTBRITE_REDIRECT_URI')
 eventbrite_app_token = os.getenv("EVENTBRITE_APP_TOKEN")
 
+# Set up logging
 logger = logging.getLogger(__name__)
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -33,6 +44,7 @@ class UserRegistrationView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (permissions.AllowAny,)
+
 
 class UserLoginView(generics.CreateAPIView):
     serializer_class = UserSerializer
@@ -44,143 +56,151 @@ class UserLoginView(generics.CreateAPIView):
         user = authenticate(request, username=username, password=password)
 
         if user:
-            return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
+            # 🔥 Generate or retrieve the token
+            token, created = Token.objects.get_or_create(user=user)
+
+            return Response({
+                "id": user.id,
+                "username": user.username,
+                "role": user.role,  # Adjust according to your User model
+                "companycode": user.companycode,  # Adjust if necessary
+                "token": token.key  # 🔥 Include token in response
+            }, status=status.HTTP_200_OK)
 
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
 
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
     permission_classes = [AllowAny]
-    
 
+    # Uncomment and adjust based on user roles
+    """
     def get_queryset(self):
         user = self.request.user
-        if user.role == 'captain':
-            return Event.objects.filter(companycode=user.companycode)
-        elif user.role == 'crew':
-            return Event.objects.filter(tasks__assigned_to=user, companycode=user.companycode).distinct()
-        return Event.objects.none()
-     
-    
-        if hasattr(user, 'role'):  # Check if 'role' attribute exists
+        if hasattr(user, 'role'):
             if user.role == 'captain':
                 return Event.objects.filter(captain=user)
             elif user.role == 'team_member':
                 return Event.objects.filter(team_members=user)
+        return Event.objects.none()
+    """
 
-    # def perform_create(self, serializer):
-    #    serializer.save(chief_planner=self.request.user,
-    #                    companycode=self.request.user.companycode)
-        
     @action(detail=False, methods=['post'])
     def create_with_openai(self, request):
         name = request.data.get('name')
-        date_str = request.data.get('date')  # Get the date string from the request
-        timezone = "Africa/Nairobi"  # Replace with the correct timezone
+        date_str = request.data.get('date')
+        timezone = "Africa/Nairobi"
 
         if not name or not date_str:
-            return Response({'error': 'Name and date are required.'},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Name and date are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            eventbrite_app_token = os.getenv("EVENTBRITE_APP_TOKEN")
-
-            # Convert date string to Eventbrite's expected format
-            # Assuming date_str is in a format like "2024-03-15T10:00:00Z"
-            # If it's not, you'll need to parse it accordingly
-            # This part might need to be adjusted based on your input format
-            utc_date_str = date_str
-
             eventbrite_data = {
-                'name': {
-                    'html': name
-                },
-                'start': {
-                    'timezone': timezone,
-                    'utc': utc_date_str
-                },
-                'end': {
-                    'timezone': timezone,
-                    'utc': utc_date_str
-                },
+                'name': {'html': name},
+                'start': {'timezone': timezone, 'utc': date_str},
+                'end': {'timezone': timezone, 'utc': date_str},
                 'currency': 'KES'
             }
 
-            # Convert the dictionary to a JSON string
             json_data = json.dumps(eventbrite_data)
-
-            logger.debug(f"Eventbrite data (JSON): {json_data}")
-
             headers = {
                 'Authorization': f'Bearer {eventbrite_app_token}',
                 'Content-Type': 'application/json',
             }
 
-            organization_id = "YOUR_ORGANIZATION_ID"  # NEED TO OBTAIN THIS
+            organization_id = "YOUR_ORGANIZATION_ID"
             eventbrite_response = requests.post(
                 f'https://www.eventbriteapi.com/v3/organizations/{organization_id}/events/',
                 headers=headers,
-                data=json_data,  # Use data=json_data
+                data=json_data,
             )
 
             eventbrite_response.raise_for_status()
             eventbrite_event = eventbrite_response.json()
 
-            # 5. Create the event in your database
-            user = request.user  # Assuming you still want to associate the event with a user
+            user = request.user
             event_data = {
                 'name': name,
-                'date': date,
+                'date': date_str,
                 'chief_planner': user.id,
                 'eventbrite_id': eventbrite_event['id'],
                 'companycode': user.companycode,
             }
 
-            # Assuming you have a serializer_class defined in your ViewSet
             serializer = self.serializer_class(data=event_data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
         except requests.exceptions.RequestException as e:
             logger.error(f"Eventbrite API error: {e}")
-            return Response({'error': f'Eventbrite API error: {e}'},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except Exception as e:
-            logger.error(f"An unexpected error occurred: {e}")
-            return Response({'error': f'An unexpected error occurred: {e}'},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        except openai.AuthenticationError as e:  # Specific OpenAI exceptions
-            logger.error(f"OpenAI Authentication error: {e}")
-            return Response({'error': f'OpenAI Authentication error: {e}'},
-                            status=status.HTTP_401_UNAUTHORIZED)
-        except openai.RateLimitError as e:
-            logger.error(f"OpenAI Rate Limit error: {e}")
-            return Response({'error': f'OpenAI Rate Limit error: {e}'},
-                            status=status.HTTP_429_TOO_MANY_REQUESTS)
-        except openai.APIConnectionError as e:
-            logger.error(f"OpenAI API Connection error: {e}")
-            return Response({'error': f'OpenAI API Connection error: {e}'},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except openai.OpenAIError as e:
-            logger.error(f"OpenAI API error: {e}")
-            return Response({'error': f'OpenAI API error: {e}'},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Eventbrite API error: {e}")
-            return Response({'error': f'Eventbrite API error: {e}'},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except Exception as e:
-            logger.error(f"An unexpected error occurred: {e}")
-            return Response({'error': f'An unexpected error occurred: {e}'},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': f'Eventbrite API error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @api_view(['POST'])
 def test_create_openai(request):
     return Response({"message": "Test endpoint working!"})
+
+
 class TaskViewSet(viewsets.ModelViewSet):
-    queryset = Task.objects.all()
     serializer_class = TaskSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Task.objects.all()
+
+    def perform_create(self, serializer):
+        assigned_user_id = self.request.data.get("assigned_to")
+        event_id = self.request.data.get("event")
+
+        assigned_user = User.objects.filter(id=assigned_user_id).first()
+        event = Event.objects.filter(id=event_id).first()
+
+        if not assigned_user or not event:
+            raise serializer.ValidationError({"error": "Invalid user or event ID"})
+
+        serializer.save(assigned_to=assigned_user, event=event)
 
 
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        role = self.request.query_params.get('role')
+        companycode = self.request.user.companycode
+        if role:
+            queryset = queryset.filter(role=role, companycode=companycode)
+        else:
+            queryset = queryset.filter(companycode=companycode)
+        return queryset
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def import_eventbrite_events(request):
+    try:
+        eventbrite_service = EventbriteService()
+        events = eventbrite_service.get_events()
+
+        if events:
+            for event in events:
+                EventbriteEvent.objects.update_or_create(
+                    eventbrite_id=event['id'],
+                    defaults={
+                        'name': event['name']['text'],
+                        'start_time': event['start']['local'],
+                        'end_time': event['end']['local'],
+                        'user': request.user,
+                    }
+                )
+            return Response({'message': 'Events imported successfully'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'Failed to import events'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

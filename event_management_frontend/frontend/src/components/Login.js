@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from '../api';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const Login = () => {
@@ -11,27 +11,46 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-
+    
         try {
             const response = await axios.post('http://localhost:8000/api/login/', {
                 username,
                 password,
             });
-
-            // Store the token and user role
-            localStorage.setItem('token', response.data.token);
-            localStorage.setItem('role', response.data.role);
-
+    
+            console.log("Login Response:", response.data);  // Debugging log
+    
+            const token = response.data?.token;
+            const role = response.data?.role;
+    
+            if (token) {
+                localStorage.setItem('token', token);
+                console.log("Stored Token:", localStorage.getItem("token"));
+            } else {
+                console.error("No token received!");
+                setError("Authentication failed: No token received.");
+                return;
+            }
+    
+            if (role) {
+                localStorage.setItem('role', role);
+                console.log("Stored Role:", localStorage.getItem("role"));
+            } else {
+                console.warn("No role received from backend.");
+            }
+    
             // Redirect based on role
-            if (response.data.role === 'captain') {
-                navigate('/captain');
+            if (role === 'captain') {
+                navigate('/api/events');
             } else {
                 navigate('/crew');
             }
         } catch (err) {
+            console.error("Login Error:", err.response?.data || err.message);
             setError(err.response?.data?.error || 'Login failed.');
         }
     };
+    
 
     return (
         <div>

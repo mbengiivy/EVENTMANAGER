@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { Link } from 'react-router-dom';
 
 const ViewEvents = () => {
     const [events, setEvents] = useState([]);
@@ -9,8 +10,9 @@ const ViewEvents = () => {
         const fetchEvents = async () => {
             try {
                 const token = localStorage.getItem("token"); // Retrieve token
+                console.log("Stored Token:", localStorage.getItem("token"));
                 const headers = token ? { Authorization: `Token ${token}` } : {};
-
+        
                 const response = await axios.get("http://127.0.0.1:8000/api/events/", { headers });
 
                 console.log("Fetched Events:", response.data);
@@ -31,10 +33,12 @@ const ViewEvents = () => {
             {events.length > 0 ? (
                 <ul>
                     {events.map((event) => (
-                        <li key={event.id}>
-                            {event.name} - {event.date}
-                        </li>
-                    ))}
+    <li key={event.id}>
+        <Link to={`http://127.0.0.1:8000/api/event/${event.id}`}>
+            {event.name} - {event.date}
+        </Link>
+    </li>
+))}
                 </ul>
             ) : (
                 <p>No events available.</p>
@@ -44,3 +48,4 @@ const ViewEvents = () => {
 };
 
 export default ViewEvents;
+ 

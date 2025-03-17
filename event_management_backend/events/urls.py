@@ -28,17 +28,21 @@ from .views import (
     UserLoginView,
     EventViewSet,
     TaskViewSet,
+    UserViewSet,
     test_create_openai,
+    import_eventbrite_events
 )
 
 router = DefaultRouter()
 router.register(r'events', EventViewSet, basename='event')
 router.register(r'tasks', TaskViewSet, basename='task')
+router.register(r'users', UserViewSet, basename='user')
 
 urlpatterns = [
     path('register/', UserRegistrationView.as_view(), name='register'),
     path('login/', UserLoginView.as_view(), name='login'),
     path('events/test_openai/', test_create_openai, name='test_create_openai'),
+    path('eventbrite/import/', import_eventbrite_events, name='import_eventbrite_events'),
     path('', include(router.urls)),
 ]
 urlpatterns += router.urls
