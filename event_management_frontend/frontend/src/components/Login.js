@@ -1,30 +1,30 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const navigate = useNavigate(); // Initialize useNavigate
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
-    
+
         try {
             const response = await axios.post('http://localhost:8000/api/login/', {
                 username,
                 password,
             });
-    
-            console.log("Login Response:", response.data);  // Debugging log
-    
+
+            console.log("Login Response:", response.data);
+
             const token = response.data?.token;
             const role = response.data?.role;
-    
+
             if (token) {
                 localStorage.setItem('token', token);
                 console.log("Stored Token:", localStorage.getItem("token"));
@@ -33,27 +33,21 @@ const Login = () => {
                 setError("Authentication failed: No token received.");
                 return;
             }
-    
+
             if (role) {
                 localStorage.setItem('role', role);
                 console.log("Stored Role:", localStorage.getItem("role"));
             } else {
                 console.warn("No role received from backend.");
             }
-    
-            // Redirect based on role
-            if (role === 'captain') {
-                navigate('/api/events');
-            } else {
-                navigate('/crew');
-            }
+
+            navigate('/'); // Redirect to the root path
         } catch (err) {
             console.error("Login Error:", err.response?.data || err.message);
             setError(err.response?.data?.error || 'Login failed.');
         }
         setLoading(false);
     };
-    
 
     return (
         <div>
@@ -63,7 +57,7 @@ const Login = () => {
                 <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
                 <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
                 <button type="submit">Login
-                {loading ? 'Creating...' : 'Loggin In'}
+                    {loading ? 'Creating...' : 'Loggin In'}
                 </button>
             </form>
         </div>
