@@ -24,6 +24,8 @@ from rest_framework.authtoken.models import Token
 from django.conf import settings
 from crew_serializers import CrewTaskSerializer, CrewVendorSerializer, CrewEventSerializer 
 from rest_framework.exceptions import ValidationError
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 # Load environment variables
 load_dotenv()
@@ -172,16 +174,47 @@ class TaskViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Ensure assigned_to exists
         assigned_user_id = request.data.get("assigned_to")
         assigned_user = User.objects.filter(id=assigned_user_id).first()
 
         if not assigned_user:
             raise ValidationError({"detail": "Invalid assigned user ID."})
 
-        serializer.save(event=event, assigned_to=assigned_user)  # Save event and assigned user
+        serializer.save(event=event, assigned_to=assigned_user)
+
+        # Send notification to assigned user
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'user_{assigned_user.id}',
+            {
+                'type': 'send_notification',
+                'notification': f'New task assigned: {serializer.data["name"]}',
+            }
+        )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            instance._prefetched_objects_cache = {}
+
+        # Send notification for task update
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'user_{instance.assigned_to.id}',
+            {
+                'type': 'send_notification',
+                'notification': f'Task updated: {serializer.data["name"]}',
+            }
+        )
+
+        return Response(serializer.data)
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -269,3 +302,9 @@ class CrewVendorViewSet(viewsets.ReadOnlyModelViewSet):
         vendors_id = Task.objects.filter(assigned_to=self.request.user).values_list('vendors', flat=True).distinct()
         return Vendor.objects.filter(id__in=vendors_id)
  
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_role(request):
+    # Assuming you have a 'role' field in your User model
+    role = request.user.role
+    return Response({'role': role})

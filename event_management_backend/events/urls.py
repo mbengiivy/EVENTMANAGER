@@ -34,7 +34,8 @@ from .views import (
     EventReportViewSet,
     TaskReportViewSet,
     VendorReportViewSet,
-    CrewTaskViewSet, CrewEventViewSet, CrewVendorViewSet
+    CrewTaskViewSet, CrewEventViewSet, CrewVendorViewSet,
+    get_user_role
 )
 
 router = DefaultRouter()
@@ -55,6 +56,7 @@ urlpatterns = [
     path('login/', UserLoginView.as_view(), name='login'),
     path('events/test_openai/', test_create_openai, name='test_create_openai'),
     path('eventbrite/import/', import_eventbrite_events, name='import_eventbrite_events'),
+    path('user/role', get_user_role, name='user-role'),
     path('', include(router.urls)),
 ]
 urlpatterns += router.urls

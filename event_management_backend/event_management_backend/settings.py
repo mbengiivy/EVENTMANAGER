@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken', 
     'corsheaders',
     'events',
-    'vendors'
+    'vendors',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -151,3 +152,13 @@ CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:3000"]
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # Ensure this is present
 ]
+ASGI_APPLICATION = "event_management_backend.asgi.application" # Replace your_project_name
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)], # Redis server address
+        },
+    },
+}

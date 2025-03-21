@@ -1,16 +1,18 @@
-"""
-ASGI config for event_management_backend project.
-
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.1/howto/deployment/asgi/
-"""
-
 import os
 
+from channels.auth import AuthMiddlewareStack
+from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'event_management_backend.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'your_project_name.settings') # Replace your_project_name
 
-application = get_asgi_application()
+import event_management_backend.routing # Replace your_app_name
+
+application = ProtocolTypeRouter({
+    "http": get_asgi_application(),
+    "websocket": AuthMiddlewareStack(
+        URLRouter(
+            event_management_backend.routing.websocket_urlpatterns # Replace your_app_name
+        )
+    ),
+})
