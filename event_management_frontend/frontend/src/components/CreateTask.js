@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api';
+import { Form, Button } from 'react-bootstrap';
 
 const CreateTask = () => {
     const [description, setDescription] = useState('');
@@ -63,25 +64,40 @@ const CreateTask = () => {
             <h2>Create Task</h2>
             {error && <p style={{ color: 'red' }}>{error}</p>}
             {success && <p style={{ color: 'green' }}>Task created successfully!</p>}
-            <form onSubmit={handleSubmit}>
-                <input type="text" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} required />
-                <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
-                <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} required>
-                    <option value="">Select Crew Member</option>
-                    {crewMembers.map((member) => (
-                        <option key={member.id} value={member.id}>{member.username}</option>
-                    ))}
-                </select>
-                <select value={event} onChange={(e) => setEvent(e.target.value)} required>
-                    <option value="">Select Event</option>
-                    {events.map((event) => (
-                        <option key={event.id} value={event.id}>{event.name}</option>
-                    ))}
-                </select>
-                <button type="submit" disabled={loading}>{loading ? 'Creating...' : 'Create Task'}</button>
-            </form>
+            <Form onSubmit={handleSubmit}>
+                <Form.Group>
+                    <Form.Label>Description</Form.Label>
+                    <Form.Control type="text" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} required />
+                </Form.Group>
+                <Form.Group>
+                    <Form.Label>Due Date</Form.Label>
+                    <Form.Control type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
+                </Form.Group>
+                <Form.Group>
+                    <Form.Label>Assigned To</Form.Label>
+                    <Form.Control as="select" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} required>
+                        <option value="">Select Crew Member</option>
+                        {crewMembers.map((member) => (
+                            <option key={member.id} value={member.id}>{member.username}</option>
+                        ))}
+                    </Form.Control>
+                </Form.Group>
+                <Form.Group>
+                    <Form.Label>Event</Form.Label>
+                    <Form.Control as="select" value={event} onChange={(e) => setEvent(e.target.value)} required>
+                        <option value="">Select Event</option>
+                        {events.map((event) => (
+                            <option key={event.id} value={event.id}>{event.name}</option>
+                        ))}
+                    </Form.Control>
+                </Form.Group>
+                <Button variant="primary" type="submit" disabled={loading}>
+                    {loading ? 'Creating...' : 'Create Task'}
+                </Button>
+            </Form>
         </div>
     );
 };
+
 
 export default CreateTask;

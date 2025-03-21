@@ -14,14 +14,16 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-
-from .models import Event, Task, EventbriteUser, EventbriteEvent
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from .models import Event, Task
+from vendors.models import Vendor
+from reports_serializers import EventReportSerializer, TaskReportSerializer, VendorReportSerializer
 from .serializers import EventSerializer, TaskSerializer, UserSerializer
 from rest_framework.authtoken.models import Token 
-from eventbrite import Eventbrite
 from django.conf import settings
-from django.shortcuts import redirect
-from django.utils import timezone
+from crew_serializers import CrewTaskSerializer, CrewVendorSerializer, CrewEventSerializer 
+from rest_framework.exceptions import ValidationError
 
 # Load environment variables
 load_dotenv()
@@ -146,24 +148,40 @@ def test_create_openai(request):
 
 
 class TaskViewSet(viewsets.ModelViewSet):
+    queryset = Task.objects.all()
     serializer_class = TaskSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdminUser]
 
-    def get_queryset(self):
-        return Task.objects.all()
+    def create(self, request, *args, **kwargs):
+        event_id = request.data.get('event')
 
-    def perform_create(self, serializer):
-        assigned_user_id = self.request.data.get("assigned_to")
-        event_id = self.request.data.get("event")
+        if not event_id:
+            return Response(
+                {"detail": "Tasks must be created within the context of an event."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
+        try:
+            event = Event.objects.get(pk=event_id)
+        except Event.DoesNotExist:
+            return Response(
+                {"detail": "Invalid event ID."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Ensure assigned_to exists
+        assigned_user_id = request.data.get("assigned_to")
         assigned_user = User.objects.filter(id=assigned_user_id).first()
-        event = Event.objects.filter(id=event_id).first()
 
-        if not assigned_user or not event:
-            raise serializer.ValidationError({"error": "Invalid user or event ID"})
+        if not assigned_user:
+            raise ValidationError({"detail": "Invalid assigned user ID."})
 
-        serializer.save(assigned_to=assigned_user, event=event)
+        serializer.save(event=event, assigned_to=assigned_user)  # Save event and assigned user
 
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -204,3 +222,50 @@ def import_eventbrite_events(request):
             return Response({'error': 'Failed to import events'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class EventReportViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Event.objects.all()
+    serializer_class = EventReportSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+class TaskReportViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Task.objects.all()
+    serializer_class = TaskReportSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+class VendorReportViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Vendor.objects.all()
+    serializer_class = VendorReportSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+
+class CrewTaskViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = CrewTaskSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Task.objects.filter(assigned_to=self.request.user)
+
+    @action(detail=True, methods=['put'])
+    def status(self, request, pk=None):
+        task = self.get_object()
+        task.status = request.data.get('status')
+        task.save()
+        return Response(CrewTaskSerializer(task).data)
+
+class CrewEventViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = CrewEventSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Event.objects.filter(tasks__assigned_to=self.request.user).distinct()
+
+
+class CrewVendorViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = CrewVendorSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        vendors_id = Task.objects.filter(assigned_to=self.request.user).values_list('vendors', flat=True).distinct()
+        return Vendor.objects.filter(id__in=vendors_id)
+ 

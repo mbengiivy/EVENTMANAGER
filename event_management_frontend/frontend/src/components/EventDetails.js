@@ -6,6 +6,7 @@ const EventDetails = () => {
     const { id } = useParams();
     const [event, setEvent] = useState(null);
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         const fetchEvent = async () => {
@@ -14,6 +15,9 @@ const EventDetails = () => {
                 setEvent(response.data);
             } catch (err) {
                 setError(err.response?.data?.error || 'Failed to fetch event details.');
+            }
+            finally {
+                setLoading(false);
             }
         };
         fetchEvent();
@@ -33,6 +37,8 @@ const EventDetails = () => {
             <p>Date: {event.date}</p>
             <p>Description: {event.description}</p>
             {/* Display other event details (agenda, tasks, etc.) */}
+            {loading && <p>Loading event details...</p>}
+
         </div>
     );
 };

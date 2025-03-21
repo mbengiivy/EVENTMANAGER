@@ -2,9 +2,11 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from 'react-router-dom';
 
+
 const ViewEvents = () => {
     const [events, setEvents] = useState([]);
     const [error, setError] = useState("");
+     
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -20,7 +22,7 @@ const ViewEvents = () => {
             } catch (err) {
                 console.error("Error fetching events:", err);
                 setError(err.response?.data?.detail || "Failed to load events.");
-            }
+                }
         };
 
         fetchEvents();

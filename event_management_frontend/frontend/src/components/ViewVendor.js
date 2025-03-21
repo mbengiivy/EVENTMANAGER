@@ -1,82 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import axios from '../api';
+// ViewVendors.js
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 const ViewVendors = () => {
     const [vendors, setVendors] = useState([]);
-    const [error, setError] = useState('');
-    const [editVendorId, setEditVendorId] = useState(null);
-    const [editName, setEditName] = useState('');
-    const [editContactInfo, setEditContactInfo] = useState('');
-    const [editServicesOffered, setEditServicesOffered] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchVendors = async () => {
+            setLoading(true);
             try {
-                const response = await axios.get('http://127.0.0.1:8000/api/vendors/');
+                const response = await axios.get("http://127.0.0.1:8000/api/vendors/");
                 setVendors(response.data);
             } catch (err) {
-                setError('Error fetching vendors.');
+                setError("Error fetching vendors.");
+            } finally {
+                setLoading(false);
             }
         };
         fetchVendors();
     }, []);
 
-    const handleEdit = (vendor) => {
-        setEditVendorId(vendor.id);
-        setEditName(vendor.name);
-        setEditContactInfo(vendor.contact_info);
-        setEditServicesOffered(vendor.services_offered);
-    };
-
-    const handleUpdate = async () => {
-        try {
-            await axios.put(`http://127.0.0.1:8000/api/vendors/${editVendorId}/`, {
-                name: editName,
-                contact_info: editContactInfo,
-                services_offered: editServicesOffered,
-            });
-            setVendors(vendors.map(vendor => vendor.id === editVendorId ? { ...vendor, name: editName, contact_info: editContactInfo, services_offered: editServicesOffered } : vendor));
-            setEditVendorId(null);
-        } catch (err) {
-            setError('Error updating vendor.');
-        }
-    };
-
     return (
         <div>
-            <h2>View Vendors</h2>
-            {error && <p style={{ color: 'red' }}>{error}</p>}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Contact Info</th>
-                        <th>Services Offered</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {vendors.map(vendor => (
-                        <tr key={vendor.id}>
-                            {editVendorId === vendor.id ? (
-                                <>
-                                    <td><input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} /></td>
-                                    <td><textarea value={editContactInfo} onChange={(e) => setEditContactInfo(e.target.value)} /></td>
-                                    <td><textarea value={editServicesOffered} onChange={(e) => setEditServicesOffered(e.target.value)} /></td>
-                                    <td><button onClick={handleUpdate}>Update</button></td>
-                                </>
-                            ) : (
-                                <>
-                                    <td>{vendor.name}</td>
-                                    <td>{vendor.contact_info}</td>
-                                    <td>{vendor.services_offered}</td>
-                                    <td><button onClick={() => handleEdit(vendor)}>Edit</button></td>
-                                </>
-                            )}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            <h2>Vendors List</h2>
+            {loading && <p>Loading...</p>}
+            {error && <p style={{ color: "red" }}>{error}</p>}
+            {!loading && !error && vendors.length === 0 && <p>No vendors available.</p>}
+            <ul>
+                {vendors.map((vendor) => (
+                    <li key={vendor.id}>{vendor.name}</li>
+                ))}
+            </ul>
         </div>
     );
 };

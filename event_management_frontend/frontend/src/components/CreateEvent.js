@@ -7,9 +7,11 @@ const CreateEvent = () => {
     const [eventDetails, setEventDetails] = useState(null); // Store OpenAI response
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
         setError('');
         setSuccess('');
 
@@ -22,10 +24,12 @@ const CreateEvent = () => {
             console.log("API Response:", response.data); // Debugging output
             setEventDetails(response.data || {}); // Ensure it's always an object
             setSuccess('Event details generated. Please confirm.');
+
         } catch (err) {
             console.error("Error fetching event details:", err);
             setError(err.response?.data?.error || 'Failed to generate event details.');
         }
+        setLoading(false);
     };
 
     const handleConfirm = async () => {
@@ -108,7 +112,9 @@ const CreateEvent = () => {
                         <p>No tasks assigned.</p>
                     )}
 
-                    <button onClick={handleConfirm}>Confirm Event</button>
+                    <button onClick={handleConfirm}>Confirm Event
+                    {loading ? 'Creating...' : 'Create event'}
+                    </button>
                 </div>
             )}
         </div>

@@ -30,13 +30,25 @@ from .views import (
     TaskViewSet,
     UserViewSet,
     test_create_openai,
-    import_eventbrite_events
+    import_eventbrite_events,
+    EventReportViewSet,
+    TaskReportViewSet,
+    VendorReportViewSet,
+    CrewTaskViewSet, CrewEventViewSet, CrewVendorViewSet
 )
 
 router = DefaultRouter()
 router.register(r'events', EventViewSet, basename='event')
 router.register(r'tasks', TaskViewSet, basename='task')
 router.register(r'users', UserViewSet, basename='user')
+router.register(r'reports/events', EventReportViewSet, basename='event-reports')
+router.register(r'reports/tasks', TaskReportViewSet, basename='task-reports')
+router.register(r'reports/vendors', VendorReportViewSet, basename='vendor-reports')
+router.register(r'crew/tasks', CrewTaskViewSet, basename='crew-tasks')
+router.register(r'crew/events', CrewEventViewSet, basename='crew-events')
+router.register(r'crew/vendors', CrewVendorViewSet, basename='crew-vendors')
+
+
 
 urlpatterns = [
     path('register/', UserRegistrationView.as_view(), name='register'),

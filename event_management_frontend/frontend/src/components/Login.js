@@ -7,9 +7,11 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const navigate = useNavigate(); // Initialize useNavigate
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
         setError('');
     
         try {
@@ -49,6 +51,7 @@ const Login = () => {
             console.error("Login Error:", err.response?.data || err.message);
             setError(err.response?.data?.error || 'Login failed.');
         }
+        setLoading(false);
     };
     
 
@@ -59,7 +62,9 @@ const Login = () => {
             <form onSubmit={handleSubmit}>
                 <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
                 <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-                <button type="submit">Login</button>
+                <button type="submit">Login
+                {loading ? 'Creating...' : 'Loggin In'}
+                </button>
             </form>
         </div>
     );

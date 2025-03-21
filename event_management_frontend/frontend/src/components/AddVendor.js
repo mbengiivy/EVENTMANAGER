@@ -7,9 +7,11 @@ const AddVendor = () => {
     const [servicesOffered, setServicesOffered] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
         try {
             await axios.post('http://127.0.0.1:8000/api/vendors/', { name, contact_info: contactInfo, services_offered: servicesOffered });
             setSuccess(true);
@@ -33,6 +35,7 @@ const AddVendor = () => {
                 <textarea placeholder="Contact Info" value={contactInfo} onChange={(e) => setContactInfo(e.target.value)} required />
                 <textarea placeholder="Services Offered" value={servicesOffered} onChange={(e) => setServicesOffered(e.target.value)} required />
                 <button type="submit">Add Vendor</button>
+                {loading ? 'Creating...' : 'Add Vendor'}
             </form>
         </div>
     );

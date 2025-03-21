@@ -41,7 +41,7 @@ class EventSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Event
-        fields = ('id', 'name', 'date', 'location', 'status', 'chief_planner', 'eventbrite_id', 'companycode')
+        fields = '__all__'
 
 class TaskSerializer(serializers.ModelSerializer):
     assigned_to = UserSerializer(read_only=True)
@@ -49,4 +49,4 @@ class TaskSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Task
-        fields = ('id', 'description', 'status', 'assigned_to', 'event', 'vendors','due_date')
+        fields = '__all__'

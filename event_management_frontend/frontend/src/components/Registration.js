@@ -10,9 +10,11 @@ const Registration = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [loading, setLoading] = useState(false) ;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true); 
         setError('');
         setSuccess('');
 
@@ -27,7 +29,7 @@ const Registration = () => {
             });
 
             setSuccess('Registration successful!');
-            window.location.href = '/api/login';
+            window.location.href = '/login';
             // Optionally, redirect to login page
             console.log(response.data); // Output the server's response
             console.log("Registration Success:", response.data);
@@ -36,6 +38,7 @@ const Registration = () => {
             console.error("Registration Error:", err.response?.data || err.message);
             setError(err.response?.data?.error || 'Registration failed.');
         }
+         setLoading(false); 
     };
 
     return (
@@ -53,7 +56,10 @@ const Registration = () => {
                 </select>
                 <input type="text" placeholder="Company Code" value={companycode} onChange={(e) => setCompanycode(e.target.value)} />
                 <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-                <button type="submit">Register</button>
+                <button type="submit" disabled={loading}>
+    {loading ? 'Creating...' : 'Register'}
+</button>
+
             </form>
         </div>
     );
