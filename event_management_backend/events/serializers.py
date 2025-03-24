@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from .models import Event, Task
+from .models import Event, Task,EventTemplate
 from django.contrib.auth import get_user_model
 from vendors.serializers import VendorSerializer
 
@@ -49,4 +49,10 @@ class TaskSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Task
+        fields = '__all__'
+    
+
+class EventTemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventTemplate
         fields = '__all__'

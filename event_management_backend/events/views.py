@@ -1,11 +1,9 @@
 import os
-import json
 import logging
-import requests
-import openai
-import unittest.mock
+""" import spacy """
 from datetime import datetime
 from dotenv import load_dotenv
+from datetime import datetime
 
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework import generics, permissions, status, viewsets
@@ -14,12 +12,12 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from rest_framework import viewsets
+from rest_framework import viewsets,generics
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from .models import Event, Task
+from .models import Event, Task, EventTemplate
 from vendors.models import Vendor
 from reports_serializers import EventReportSerializer, TaskReportSerializer, VendorReportSerializer
-from .serializers import EventSerializer, TaskSerializer, UserSerializer
+from .serializers import EventSerializer, TaskSerializer, UserSerializer, EventTemplateSerializer
 from rest_framework.authtoken.models import Token 
 from django.conf import settings
 from crew_serializers import CrewTaskSerializer, CrewVendorSerializer, CrewEventSerializer 
@@ -33,21 +31,41 @@ load_dotenv()
 # Get User model
 User = get_user_model()
 
-# Set API keys
-openai.api_key = os.getenv('OPENAI_API_KEY')
-EVENTBRITE_CLIENT_ID = os.getenv('EVENTBRITE_CLIENT_ID')
-EVENTBRITE_CLIENT_SECRET = os.getenv('EVENTBRITE_CLIENT_SECRET')
-EVENTBRITE_REDIRECT_URI = os.getenv('EVENTBRITE_REDIRECT_URI')
-eventbrite_app_token = os.getenv("EVENTBRITE_APP_TOKEN")
-
-# Set up logging
-logger = logging.getLogger(__name__)
+""" nlp = spacy.load("en_core_web_sm") """
 
 @method_decorator(csrf_exempt, name='dispatch')
 class UserRegistrationView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (permissions.AllowAny,)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+class UserLoginView(generics.CreateAPIView):
+    serializer_class = UserSerializer
+    permission_classes = (permissions.AllowAny,)
+
+    def post(self, request, *args, **kwargs):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        user = authenticate(request, username=username, password=password)
+
+        if user:
+            token, created = Token.objects.get_or_create(user=user)
+            return Response({
+                "id": user.id,
+                "username": user.username,
+                "role": user.role,
+                "companycode": user.companycode,
+                "token": token.key
+            }, status=status.HTTP_200_OK)
+
+        return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class UserLoginView(generics.CreateAPIView):
@@ -60,94 +78,16 @@ class UserLoginView(generics.CreateAPIView):
         user = authenticate(request, username=username, password=password)
 
         if user:
-            # 🔥 Generate or retrieve the token
             token, created = Token.objects.get_or_create(user=user)
-
             return Response({
                 "id": user.id,
                 "username": user.username,
-                "role": user.role,  # Adjust according to your User model
-                "companycode": user.companycode,  # Adjust if necessary
-                "token": token.key  # 🔥 Include token in response
+                "role": user.role,
+                "companycode": user.companycode,
+                "token": token.key
             }, status=status.HTTP_200_OK)
 
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-
-
-class EventViewSet(viewsets.ModelViewSet):
-    queryset = Event.objects.all()
-    serializer_class = EventSerializer
-    permission_classes = [AllowAny]
-
-    # Uncomment and adjust based on user roles
-    """
-    def get_queryset(self):
-        user = self.request.user
-        if hasattr(user, 'role'):
-            if user.role == 'captain':
-                return Event.objects.filter(captain=user)
-            elif user.role == 'team_member':
-                return Event.objects.filter(team_members=user)
-        return Event.objects.none()
-    """
-
-    @action(detail=False, methods=['post'])
-    def create_with_openai(self, request):
-        name = request.data.get('name')
-        date_str = request.data.get('date')
-        timezone = "Africa/Nairobi"
-
-        if not name or not date_str:
-            return Response({'error': 'Name and date are required.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            eventbrite_data = {
-                'name': {'html': name},
-                'start': {'timezone': timezone, 'utc': date_str},
-                'end': {'timezone': timezone, 'utc': date_str},
-                'currency': 'KES'
-            }
-
-            json_data = json.dumps(eventbrite_data)
-            headers = {
-                'Authorization': f'Bearer {eventbrite_app_token}',
-                'Content-Type': 'application/json',
-            }
-
-            organization_id = "YOUR_ORGANIZATION_ID"
-            eventbrite_response = requests.post(
-                f'https://www.eventbriteapi.com/v3/organizations/{organization_id}/events/',
-                headers=headers,
-                data=json_data,
-            )
-
-            eventbrite_response.raise_for_status()
-            eventbrite_event = eventbrite_response.json()
-
-            user = request.user
-            event_data = {
-                'name': name,
-                'date': date_str,
-                'chief_planner': user.id,
-                'eventbrite_id': eventbrite_event['id'],
-                'companycode': user.companycode,
-            }
-
-            serializer = self.serializer_class(data=event_data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Eventbrite API error: {e}")
-            return Response({'error': f'Eventbrite API error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-@api_view(['POST'])
-def test_create_openai(request):
-    return Response({"message": "Test endpoint working!"})
-
 
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()
@@ -232,30 +172,6 @@ class UserViewSet(viewsets.ModelViewSet):
         return queryset
 
 
-@api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
-def import_eventbrite_events(request):
-    try:
-        eventbrite_service = EventbriteService()
-        events = eventbrite_service.get_events()
-
-        if events:
-            for event in events:
-                EventbriteEvent.objects.update_or_create(
-                    eventbrite_id=event['id'],
-                    defaults={
-                        'name': event['name']['text'],
-                        'start_time': event['start']['local'],
-                        'end_time': event['end']['local'],
-                        'user': request.user,
-                    }
-                )
-            return Response({'message': 'Events imported successfully'}, status=status.HTTP_200_OK)
-        else:
-            return Response({'error': 'Failed to import events'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 class EventReportViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventReportSerializer
@@ -308,3 +224,69 @@ def get_user_role(request):
     # Assuming you have a 'role' field in your User model
     role = request.user.role
     return Response({'role': role})
+
+""" def generate_nlp_template(event_name):
+    doc = nlp(event_name)
+    template_data = []
+
+    if "conference" in event_name.lower():
+        template_data.append({"label": "Speakers", "type": "textarea", "key": "speakers"})
+        template_data.append({"label": "Agenda", "type": "textarea", "key": "agenda"})
+
+    for ent in doc.ents:
+        if ent.label_ == "GPE":
+            template_data.append({"label": "Location", "type": "text", "key": "location"})
+        if ent.label_ == "ORG":
+            template_data.append({"label": "Organizers", "type": "text", "key": "organizers"})
+
+    if not template_data:
+        template_data.append({"label": "Notes", "type": "textarea", "key": "notes"})
+
+    return template_data
+
+class EventTemplateView(generics.ListAPIView):
+    serializer_class = EventTemplateSerializer
+
+    def get_queryset(self):
+        event_type = self.request.query_params.get('event_type', None)
+        if event_type is not None:
+            return EventTemplate.objects.filter(event_type__icontains=event_type)
+        else:
+            return EventTemplate.objects.all()
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        event_type = request.query_params.get('event_type', None)
+
+        if not serializer.data and event_type:
+            nlp_template = generate_nlp_template(event_type)
+            return Response({"template": nlp_template})
+        else:
+            if serializer.data:
+                return Response({"template": serializer.data[0]['template_data']})
+            else:
+                return Response({"template": [{"label": "Notes", "type": "textarea", "key": "notes"}]}) """
+
+
+class CalendarEventListView(generics.ListAPIView):
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Adjust this queryset based on user role if needed
+        return Event.objects.all()
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        formatted_events = []
+        for event in serializer.data:
+            formatted_events.append({
+                'id': event['id'],
+                'title': event['name'],
+                'start': event['event_date'], # Assuming event_date is a date field
+                'end': event['event_date'],   # Adjust if you have an end date
+                'allDay': True,  # Adjust if you have time-based events
+            })
+        return Response(formatted_events)

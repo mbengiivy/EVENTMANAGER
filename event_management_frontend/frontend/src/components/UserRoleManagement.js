@@ -49,10 +49,10 @@ const UserRoleManagement = () => {
 
     return (
         <DashboardLayout>
-            {error && <div>{error}</div>}
+            {error && <div className="alert alert-danger">{error}</div>}
 
             <h2>User Role Management</h2>
-            <table>
+            <table className="table table-striped">
                 <thead>
                     <tr>
                         <th>Username</th>
@@ -66,7 +66,7 @@ const UserRoleManagement = () => {
                             <td>{user.username}</td>
                             <td>
                                 {editingUserId === user.id ? (
-                                    <select value={editedRole} onChange={(e) => setEditedRole(e.target.value)}>
+                                    <select className="form-control" value={editedRole} onChange={(e) => setEditedRole(e.target.value)}>
                                         <option value="admin">Admin</option>
                                         <option value="crew">Crew</option>
                                     </select>
@@ -76,9 +76,9 @@ const UserRoleManagement = () => {
                             </td>
                             <td>
                                 {editingUserId === user.id ? (
-                                    <button onClick={() => handleSaveRole(user.id)}>Save</button>
+                                    <button className="btn btn-sm btn-success" onClick={() => handleSaveRole(user.id)}>Save</button>
                                 ) : (
-                                    <button onClick={() => handleEditRole(user.id, user.role)}>Edit</button>
+                                    <button className="btn btn-sm btn-primary" onClick={() => handleEditRole(user.id, user.role)}>Edit</button>
                                 )}
                             </td>
                         </tr>

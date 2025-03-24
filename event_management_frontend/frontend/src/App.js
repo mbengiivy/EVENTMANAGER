@@ -6,6 +6,9 @@ import Login from './components/Login';
 import CaptainDashboard from './components/dashboard/CaptainDashboard';
 import CrewDashboard from './components/dashboard/CrewDashboard';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import '@fortawesome/fontawesome-free/css/all.min.css';
+import Homepage from './components/Homepage';
+import EventCalendar from './components/EventCalendar'; // Import the calendar component
 
 // Captain Components
 import CreateEvent from './components/CreateEvent';
@@ -31,48 +34,51 @@ function App() {
         const storedRole = localStorage.getItem('role');
         if (storedRole) {
             setUserRole(storedRole);
-        } else {
-            navigate('/login');
         }
-    }, [navigate]);
+    }, []);
 
-    if (userRole === null) {
-        return <div>Loading...</div>;
-    }
+    useEffect(() => {
+        if (userRole) {
+            navigate('/'); // Redirect to Homepage after login
+        }
+    }, [userRole, navigate]);
 
     return (
-      <>
-      <Navigation />
-      <Routes>        
-          <Route path="/register" element={<Registration />} />
-          <Route path="/login" element={<Login />} />
+        <>
+            <Routes>
+                <Route path="/" element={<Homepage />} />
+                <Route path="/register" element={<Registration />} />
+                <Route path="/login" element={<Login />} />
 
-          {userRole === 'captain' && (
-              <Route path="/*" element={<CaptainDashboard />}>
-                   <Route index element={<ViewEvents />} /> 
-                  <Route path="create-event" element={<CreateEvent />} />
-                  <Route path="events" element={<ViewEvents />} />
-                  <Route path="event/:id" element={<EventDetails />} />
-                  <Route path="create-task" element={<CreateTask />} />
-                  <Route path="view-tasks" element={<ViewTasks />} />
-                  <Route path="add-vendor" element={<AddVendor />} />
-                  <Route path="view-vendors" element={<ViewVendor />} />
-                  <Route path="assign-vendors" element={<AssignVendorsToTask />} />
-                  <Route path="reports" element={<ReportView />} />
-              </Route>
-          )}
+                {userRole === 'captain' && (
+                    <Route path="/captain/*" element={<CaptainDashboard />}>
+                        <Route index element={<ViewEvents />} />
+                        <Route path="create-event" element={<CreateEvent />} />
+                        <Route path="events" element={<ViewEvents />} />
+                        <Route path="event/:id" element={<EventDetails />} />
+                        <Route path="create-task" element={<CreateTask />} />
+                        <Route path="view-tasks" element={<ViewTasks />} />
+                        <Route path="add-vendor" element={<AddVendor />} />
+                        <Route path="view-vendors" element={<ViewVendor />} />
+                        <Route path="assign-vendors" element={<AssignVendorsToTask />} />
+                        <Route path="reports" element={<ReportView />} />
+                        <Route path="/calendar" element={<EventCalendar />} />
+                    </Route>
+                )}
 
-          {userRole === 'crew' && (
-              <Route path="/*" element={<CrewDashboard />}>
-                  <Route index element={<CrewTasks />} />
-                  <Route path="tasks" element={<CrewTasks />} />
-                  <Route path="events" element={<CrewEvents />} />
-                  <Route path="vendors" element={<CrewVendors />} />
-              </Route>
-          )}
-      </Routes>
-      </>
-  );
+                {userRole === 'crew' && (
+                    <Route path="/crew/*" element={<CrewDashboard />}>
+                        <Route index element={<CrewTasks />} />
+                        <Route path="tasks" element={<CrewTasks />} />
+                        <Route path="events" element={<CrewEvents />} />
+                        <Route path="vendors" element={<CrewVendors />} />
+                        <Route path="/calendar" element={<EventCalendar />} />
+                    </Route>
+                )}
+            </Routes>
+            {userRole && <Navigation />}
+        </>
+    );
 }
 
 export default App;

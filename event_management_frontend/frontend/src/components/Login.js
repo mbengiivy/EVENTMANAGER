@@ -20,30 +20,27 @@ const Login = () => {
                 password,
             });
 
-            console.log("Login Response:", response.data);
-
             const token = response.data?.token;
             const role = response.data?.role;
+            const companycode = response.data?.companycode; // Get company code
 
             if (token) {
                 localStorage.setItem('token', token);
-                console.log("Stored Token:", localStorage.getItem("token"));
             } else {
-                console.error("No token received!");
                 setError("Authentication failed: No token received.");
                 return;
             }
 
             if (role) {
                 localStorage.setItem('role', role);
-                console.log("Stored Role:", localStorage.getItem("role"));
-            } else {
-                console.warn("No role received from backend.");
             }
 
-            navigate('/'); // Redirect to the root path
+            if (companycode) { // Store company code
+                localStorage.setItem('companycode', companycode);
+            }
+
+            navigate('/');
         } catch (err) {
-            console.error("Login Error:", err.response?.data || err.message);
             setError(err.response?.data?.error || 'Login failed.');
         }
         setLoading(false);

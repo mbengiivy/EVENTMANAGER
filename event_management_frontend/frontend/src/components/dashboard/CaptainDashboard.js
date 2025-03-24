@@ -12,7 +12,7 @@ const CaptainDashboard = () => {
     const [showEditForm, setShowEditForm] = useState(false);
     const [editEventId, setEditEventId] = useState(null);
     const [editEventName, setEditEventName] = useState('');
-    const [userId, setUserId] = useState(null); // Add userId state
+    const [userId, setUserId] = useState(null);
 
     const fetchEvents = async () => {
         try {
@@ -33,7 +33,7 @@ const CaptainDashboard = () => {
 
     useEffect(() => {
         fetchEvents();
-        const storedUserId = localStorage.getItem('userId'); // Fetch userId from localStorage
+        const storedUserId = localStorage.getItem('userId');
         setUserId(parseInt(storedUserId));
     }, []);
 
@@ -111,7 +111,11 @@ const CaptainDashboard = () => {
     if (loading) {
         return (
             <DashboardLayout>
-                <div>Loading events...</div>
+                <div className="d-flex justify-content-center align-items-center vh-100">
+                    <div className="spinner-border" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                    </div>
+                </div>
             </DashboardLayout>
         );
     }
@@ -119,46 +123,59 @@ const CaptainDashboard = () => {
     if (error) {
         return (
             <DashboardLayout>
-                <div>{error}</div>
+                <div className="alert alert-danger" role="alert">
+                    {error}
+                </div>
             </DashboardLayout>
         );
     }
 
     return (
         <DashboardLayout>
-            {userId && <Notifications userId={userId} />} {/* Render Notifications */}
-            <button onClick={() => setShowCreateForm(true)}>Create Event</button>
+            {userId && <Notifications userId={userId} />}
+
+            <div className="mb-3">
+                <button className="btn btn-primary" onClick={() => setShowCreateForm(true)}>Create Event</button>
+            </div>
 
             {showCreateForm && (
-                <div>
-                    <input
-                        type="text"
-                        placeholder="Event Name"
-                        value={newEventName}
-                        onChange={(e) => setNewEventName(e.target.value)}
-                    />
-                    <button onClick={handleCreateEvent}>Submit</button>
+                <div className="mb-3">
+                    <div className="input-group">
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Event Name"
+                            value={newEventName}
+                            onChange={(e) => setNewEventName(e.target.value)}
+                        />
+                        <button className="btn btn-success" onClick={handleCreateEvent}>Submit</button>
+                    </div>
                 </div>
             )}
 
             {showEditForm && (
-                <div>
-                    <input
-                        type="text"
-                        value={editEventName}
-                        onChange={(e) => setEditEventName(e.target.value)}
-                    />
-                    <button onClick={handleUpdateEvent}>Update</button>
+                <div className="mb-3">
+                    <div className="input-group">
+                        <input
+                            type="text"
+                            className="form-control"
+                            value={editEventName}
+                            onChange={(e) => setEditEventName(e.target.value)}
+                        />
+                        <button className="btn btn-success" onClick={handleUpdateEvent}>Update</button>
+                    </div>
                 </div>
             )}
 
             <h2>Event List</h2>
-            <ul>
+            <ul className="list-group">
                 {events.map((event) => (
-                    <li key={event.id}>
+                    <li key={event.id} className="list-group-item d-flex justify-content-between align-items-center">
                         {event.name}
-                        <button onClick={() => handleEditEvent(event.id, event.name)}>Edit</button>
-                        <button onClick={() => handleDeleteEvent(event.id)}>Delete</button>
+                        <div>
+                            <button className="btn btn-sm btn-primary me-2" onClick={() => handleEditEvent(event.id, event.name)}>Edit</button>
+                            <button className="btn btn-sm btn-danger" onClick={() => handleDeleteEvent(event.id)}>Delete</button>
+                        </div>
                     </li>
                 ))}
             </ul>

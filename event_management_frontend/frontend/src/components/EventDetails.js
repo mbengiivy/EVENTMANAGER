@@ -1,72 +1,87 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../api';
+import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 
 const EventDetails = () => {
-    const { id } = useParams();
-    const [event, setEvent] = useState(null);
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [editing, setEditing] = useState(false);
+    const { eventId } = useParams();
     const navigate = useNavigate();
+    const [event, setEvent] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [showEditForm, setShowEditForm] = useState(false);
+    const [editEventName, setEditEventName] = useState('');
+    // include other state variables that you are using.
 
     useEffect(() => {
-        const fetchEvent = async () => {
-            setLoading(true);
+        const fetchEventDetails = async () => {
             try {
-                const response = await axios.get(`http://127.0.0.1:8000/api/events/${id}/`);
+                const token = localStorage.getItem('token');
+                const response = await axios.get(`http://localhost:8000/api/events/${eventId}/`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
                 setEvent(response.data);
-            } catch (err) {
-                setError(err.response?.data?.error || 'Failed to fetch event details.');
-            } finally {
                 setLoading(false);
+                setEditEventName(response.data.name); // initialise the edit form.
+            } catch (err) {
+                setError('Failed to load event details.');
+                setLoading(false);
+                console.error('Error fetching event details:', err);
             }
         };
-        fetchEvent();
-    }, [id]);
 
-    const handleUpdate = async () => {
+        fetchEventDetails();
+    }, [eventId]);
+
+    const handleUpdateEvent = async () => {
         try {
-            await axios.put(`http://127.0.0.1:8000/api/events/${id}/`, event);
-            setEditing(false); // Exit editing mode
-            navigate(`/events/${id}`);
+            const token = localStorage.getItem('token');
+            await axios.put(
+                `http://localhost:8000/api/events/${eventId}/`,
+                { name: editEventName },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            setShowEditForm(false);
+            navigate(`/events/${eventId}`);
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to update event details.');
+            setError('Failed to update event.');
+            console.error('Error updating event:', err);
         }
     };
 
-    const handleInputChange = (e) => {
-        setEvent({ ...event, [e.target.name]: e.target.value });
-    };
-
-    if (error) {
-        return <p style={{ color: 'red' }}>{error}</p>;
+    if (loading) {
+        return <div>Loading...</div>;
     }
 
-    if (!event) {
-        return <p>Loading...</p>;
+    if (error) {
+        return <div className="alert alert-danger">{error}</div>;
     }
 
     return (
         <div>
-            {editing ? (
+            <h2>Event Details</h2>
+            {event && (
                 <div>
-                    <h2>Edit Event</h2>
-                    <input type="text" name="name" value={event.name} onChange={handleInputChange} placeholder="Name" />
-                    <input type="text" name="date" value={event.date} onChange={handleInputChange} placeholder="Date" />
-                    <textarea name="description" value={event.description} onChange={handleInputChange} placeholder="Description" />
-                    <button onClick={handleUpdate}>Save</button>
-                    <button onClick={() => setEditing(false)}>Cancel</button>
-                </div>
-            ) : (
-                <div>
-                    <h2>{event.name}</h2>
-                    <p>Date: {event.date}</p>
-                    <p>Description: {event.description}</p>
-                    <button onClick={() => setEditing(true)}>Edit</button>
+                    <p><strong>Name:</strong> {event.name}</p>
+                    {/* ... other event details ... */}
+
+                    <button className="btn btn-primary" onClick={() => setShowEditForm(true)}>Edit Event</button>
+
+                    {showEditForm && (
+                        <div className="mt-3">
+                            <input type="text" className="form-control mb-2" value={editEventName} onChange={(e) => setEditEventName(e.target.value)} />
+                            {/* ... other input fields ... */}
+                            <button className="btn btn-success" onClick={handleUpdateEvent}>Update</button>
+                            <button className="btn btn-secondary ml-2" onClick={() => setShowEditForm(false)}>Cancel</button>
+                        </div>
+                    )}
                 </div>
             )}
-            {loading && <p>Loading event details...</p>}
         </div>
     );
 };

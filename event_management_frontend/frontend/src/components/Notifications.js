@@ -44,13 +44,11 @@ const Notifications = ({ userId }) => {
         <div>
             {showNotification && (
                 <div
+                    className="alert alert-info"
                     style={{
                         position: 'fixed',
                         top: '20px',
                         right: '20px',
-                        background: 'lightblue',
-                        padding: '10px',
-                        borderRadius: '5px',
                         zIndex: 1000,
                     }}
                 >

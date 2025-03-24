@@ -1,123 +1,145 @@
 import React, { useState } from 'react';
-import axios from '../api';
+import axios from 'axios';
+import DashboardLayout from './DashboardLayout';
 
 const CreateEvent = () => {
     const [eventName, setEventName] = useState('');
     const [eventDate, setEventDate] = useState('');
-    const [eventDetails, setEventDetails] = useState(null); // Store OpenAI response
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [template, setTemplate] = useState([]);
+    const [formData, setFormData] = useState({});
+    const [errors, setErrors] = useState({});
+    const [isLoading, setIsLoading] = useState(false); // Loading state
+
+    const validateForm = () => {
+        let isValid = true;
+        const newErrors = {};
+
+        if (!eventName.trim()) {
+            newErrors.eventName = 'Event name is required.';
+            isValid = false;
+        }
+
+        if (!eventDate) {
+            newErrors.eventDate = 'Event date is required.';
+            isValid = false;
+        }
+
+        setErrors(newErrors);
+        return isValid;
+    };
+
+    const fetchTemplate = async () => {
+        setIsLoading(true); // Start loading
+        try {
+            const response = await axios.get(`http://localhost:8000/api/templates/?event_type=${eventName}`);
+            setTemplate(response.data.template);
+        } catch (error) {
+            console.error('Error fetching template:', error);
+            setTemplate([{ label: 'Notes', type: 'textarea', key: 'notes' }]);
+        }
+        setIsLoading(false); // Stop loading
+    };
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
-        setError('');
-        setSuccess('');
-
-        try {
-            const response = await axios.post('http://127.0.0.1:8000/api/events/create_with_openai/', {
-                name: eventName,
-                date: eventDate,
-            });
-
-            console.log("API Response:", response.data); // Debugging output
-            setEventDetails(response.data || {}); // Ensure it's always an object
-            setSuccess('Event details generated. Please confirm.');
-
-        } catch (err) {
-            console.error("Error fetching event details:", err);
-            setError(err.response?.data?.error || 'Failed to generate event details.');
-        }
-        setLoading(false);
-    };
-
-    const handleConfirm = async () => {
-        if (!eventDetails) {
-            setError("No event details available to confirm.");
-            return;
-        }
-
-        try {
-            await axios.post('http://127.0.0.1:8000/api/create-event/', {
-                name: eventName,
-                date: eventDate,
-                description: eventDetails.description || "No description provided.",
-                agenda: eventDetails.agenda || [],
-                tasks: eventDetails.tasks || [],
-            });
-
-            setSuccess('Event created successfully!');
-        } catch (err) {
-            console.error("Error creating event:", err);
-            setError(err.response?.data?.error || 'Failed to create event.');
+        if (validateForm()) {
+            setIsLoading(true);
+            try {
+                const token = localStorage.getItem('token');
+                await axios.post('http://localhost:8000/api/events/', formData, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                setSuccessMessage('Event created successfully!');
+                setErrorMessage('');
+            } catch (error) {
+                console.error('Error creating event:', error);
+                setErrorMessage('Failed to create event.');
+                setSuccessMessage('');
+            }
+            setIsLoading(false);
         }
     };
 
     return (
-        <div>
+        <DashboardLayout>
             <h2>Create Event</h2>
-            {error && <p style={{ color: 'red' }}>{error}</p>}
-            {success && <p style={{ color: 'green' }}>{success}</p>}
-            <form onSubmit={handleSubmit}>
+            {isLoading && <div className="alert alert-info">Loading...</div>}
+            {successMessage && (
+                <div className="alert alert-success">{successMessage}</div>
+            )}
+            {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
+            <div className="mb-3">
                 <input
                     type="text"
                     placeholder="Event Name"
                     value={eventName}
                     onChange={(e) => setEventName(e.target.value)}
+                    className="form-control" // Bootstrap input style
+                    disabled={isLoading}
                 />
+                {errors.eventName && (
+                    <div className="text-danger">{errors.eventName}</div>
+                )}
+            </div>
+            <div className="mb-3">
                 <input
-                    type="datetime-local"
+                    type="date"
+                    placeholder="Event Date"
                     value={eventDate}
                     onChange={(e) => setEventDate(e.target.value)}
+                    className="form-control" // Bootstrap input style
+                    disabled={isLoading}
                 />
-                <button type="submit">Generate Event Details</button>
+                {errors.eventDate && (
+                    <div className="text-danger">{errors.eventDate}</div>
+                )}
+            </div>
+            <button onClick={fetchTemplate} disabled={isLoading} className="btn btn-primary">
+                Load Template
+            </button>
+            <form onSubmit={handleSubmit}>
+                {template.map((field) => (
+                    <div key={field.key} className="mb-3">
+                        <label className="form-label">{field.label}:</label>
+                        {field.type === 'select' ? (
+                            <select
+                                name={field.key}
+                                value={formData[field.key] || ''}
+                                onChange={(e) => handleChange(e)}
+                                className="form-select" // Bootstrap select style
+                                disabled={isLoading}
+                            >
+                                <option value="">Select...</option>
+                                {field.options &&
+                                    field.options.map((option) => (
+                                        <option key={option} value={option}>
+                                            {option}
+                                        </option>
+                                    ))}
+                            </select>
+                        ) : (
+                            <input
+                                type={field.type}
+                                name={field.key}
+                                value={formData[field.key] || ''}
+                                onChange={(e) => handleChange(e)}
+                                className="form-control" // Bootstrap input style
+                                disabled={isLoading}
+                            />
+                        )}
+                    </div>
+                ))}
+                <button type="submit" disabled={isLoading} className="btn btn-success">
+                    Create Event
+                </button>
             </form>
-
-            {eventDetails && (
-                <div>
-                    <h3>Event Details</h3>
-                    
-                    {eventDetails?.description ? (
-                        <p>Description: {eventDetails.description}</p>
-                    ) : (
-                        <p>No description provided.</p>
-                    )}
-
-                    {eventDetails?.agenda?.length > 0 ? (
-                        <div>
-                            <h4>Agenda</h4>
-                            <ul>
-                                {eventDetails.agenda.map((item, index) => (
-                                    <li key={index}>
-                                        {item?.time}: {item?.activity}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    ) : (
-                        <p>No agenda available.</p>
-                    )}
-
-                    {eventDetails?.tasks?.length > 0 ? (
-                        <div>
-                            <h4>Tasks</h4>
-                            <ul>
-                                {eventDetails.tasks.map((task, index) => (
-                                    <li key={index}>{task}</li>
-                                ))}
-                            </ul>
-                        </div>
-                    ) : (
-                        <p>No tasks assigned.</p>
-                    )}
-
-                    <button onClick={handleConfirm}>Confirm Event
-                    {loading ? 'Creating...' : 'Create event'}
-                    </button>
-                </div>
-            )}
-        </div>
+        </DashboardLayout>
     );
 };
 
