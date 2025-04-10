@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import DashboardLayout from '../DashboardLayout';
 
 const VendorManagement = () => {
     const [vendors, setVendors] = useState([]);
@@ -96,7 +95,7 @@ const VendorManagement = () => {
     };
 
     return (
-        <DashboardLayout>
+        <>
             {error && <div>{error}</div>}
 
             <button onClick={() => setShowCreateForm(true)}>Create Vendor</button>
@@ -134,7 +133,7 @@ const VendorManagement = () => {
                     </li>
                 ))}
             </ul>
-        </DashboardLayout>
+        </>
     );
 };
 

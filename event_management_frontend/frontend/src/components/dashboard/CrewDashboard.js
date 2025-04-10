@@ -1,35 +1,43 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import DashboardLayout from '../DashboardLayout';
-import Notifications from '../Notifications';
-import CrewEvents from './CrewEvents'; // Create this component
-import CrewTasks from './CrewTasks'; // Create this component
-import CrewVendors from './CrewVendors'; // Create this component
-import EventCalendar from './EventCalendar'; // Import Calendar Component
+import React, { useState, useEffect } from "react";
+import Notifications from "../Notifications";
+import EventCalendar from "../EventCalendar"; // Import Calendar Component
 
 const CrewDashboard = () => {
     const [userId, setUserId] = useState(null);
+    const [userName, setUserName] = useState(null); // Add state for user name
 
     useEffect(() => {
-        const storedUserId = localStorage.getItem('userId');
+        const storedUserId = localStorage.getItem("userId");
+        const storedUserName = localStorage.getItem("userName"); // Retrieve user name
         setUserId(parseInt(storedUserId));
+        setUserName(storedUserName);
     }, []);
 
     return (
-        <DashboardLayout>
-            <div className="container mt-4">
-                <h2>Crew Dashboard</h2>
+        <div className="container mt-5">
+            <div className="card shadow-lg p-4">
+                <h2 className="text-center text-primary">Crew Dashboard</h2>
 
-                {userId && <Notifications userId={userId} />}
+                {/* Welcome Message */}
+                {userName && (
+                    <h4 className="text-center text-secondary mt-3">Welcome, {userName}!</h4>
+                )}
 
-                <div className="mt-3">
-                    <CrewEvents />
-                    <CrewTasks />
-                    <CrewVendors />
-                    <EventCalendar />
+                {/* Notifications Section */}
+                {userId && (
+                    <div className="mt-4">
+                        <h5 className="text-dark">Notifications</h5>
+                        <Notifications userId={userId} />
+                    </div>
+                )}
+
+                {/* Event Calendar Section */}
+                <div className="mt-4">
+                    <h5 className="text-dark">Event Calendar</h5>
+                    <EventCalendar /> {/* Display the calendar */}
                 </div>
             </div>
-        </DashboardLayout>
+        </div>
     );
 };
 

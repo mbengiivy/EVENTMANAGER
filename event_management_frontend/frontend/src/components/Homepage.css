@@ -1,0 +1,153 @@
+/* Homepage.css */
+
+.homepage-container {
+    font-family: sans-serif;
+    color: #333;
+}
+
+/* Hero Section */
+.hero-section {
+    background-color: #f8f9fa;
+    padding: 80px 0;
+    text-align: center;
+}
+
+.hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.hero-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.hero-subtitle {
+    font-size: 1.2rem;
+    color: #777;
+    margin-bottom: 30px;
+}
+
+.hero-buttons .button {
+    display: inline-block;
+    padding: 12px 24px;
+    margin: 0 10px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
+
+.hero-buttons .primary-button {
+    background-color: #007bff;
+    color: white;
+}
+
+.hero-buttons .primary-button:hover {
+    background-color: #0056b3;
+}
+
+.hero-buttons .secondary-button {
+    background-color: #6c757d;
+    color: white;
+}
+
+.hero-buttons .secondary-button:hover {
+    background-color: #545b62;
+}
+
+/* Features Section */
+.features-section {
+    padding: 60px 0;
+    background-color: #fff;
+}
+
+.section-title {
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 40px;
+    color: #2c3e50;
+}
+
+.feature-item {
+    text-align: center;
+    padding: 20px;
+}
+
+.feature-icon {
+    margin-bottom: 20px;
+}
+
+.primary-icon {
+    color: #007bff;
+}
+
+.success-icon {
+    color: #28a745;
+}
+
+.info-icon {
+    color: #17a2b8;
+}
+
+.feature-item h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    color: #343a40;
+}
+
+.feature-description {
+    color: #777;
+}
+
+/* Call to Action Section */
+.cta-section {
+    background-color: #f8f9fa;
+    padding: 80px 0;
+    text-align: center;
+}
+
+.cta-title {
+    font-size: 2.2rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.cta-subtitle {
+    font-size: 1.2rem;
+    color: #777;
+    margin-bottom: 30px;
+}
+
+.call-to-action-button {
+    display: inline-block;
+    padding: 15px 30px;
+    background-color: #28a745;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
+
+.call-to-action-button:hover {
+    background-color: #1e7e34;
+}
+
+/* Footer */
+.site-footer {
+    background-color: #343a40;
+    color: white;
+    text-align: center;
+    padding: 20px 0;
+    font-size: 0.9rem;
+}
+
+.site-footer .container p {
+    margin-bottom: 0;
+}

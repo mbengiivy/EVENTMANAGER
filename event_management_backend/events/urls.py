@@ -35,7 +35,8 @@ from .views import (
     VendorReportViewSet,
     CrewTaskViewSet, CrewEventViewSet, CrewVendorViewSet,
     get_user_role,
-    CalendarEventListView
+    CalendarEventListView,
+    EventTemplateView
 )
 
 router = DefaultRouter()
@@ -55,8 +56,10 @@ urlpatterns = [
     path('register/', UserRegistrationView.as_view(), name='register'),
     path('login/', UserLoginView.as_view(), name='login'),
     path('user/role', get_user_role, name='user-role'),
+    path('templates/', EventTemplateView.as_view(), name='event-templates'),
     path('', include(router.urls)),
     path('calendar/events/', CalendarEventListView.as_view(), name='calendar_events'),
+    path('users/me/', UserViewSet.as_view({'get': 'get_authenticated_user'}), name='auth-me'),
 ] 
 urlpatterns += router.urls
 

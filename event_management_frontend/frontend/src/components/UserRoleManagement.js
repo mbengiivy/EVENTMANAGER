@@ -1,7 +1,7 @@
 // src/components/dashboard/UserRoleManagement.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import DashboardLayout from '../DashboardLayout';
+
 
 const UserRoleManagement = () => {
     const [users, setUsers] = useState([]);
@@ -48,7 +48,7 @@ const UserRoleManagement = () => {
     };
 
     return (
-        <DashboardLayout>
+        <>
             {error && <div className="alert alert-danger">{error}</div>}
 
             <h2>User Role Management</h2>
@@ -85,7 +85,7 @@ const UserRoleManagement = () => {
                     ))}
                 </tbody>
             </table>
-        </DashboardLayout>
+        </>
     );
 };
 

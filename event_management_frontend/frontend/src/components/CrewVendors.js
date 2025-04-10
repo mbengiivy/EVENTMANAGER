@@ -1,53 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import DashboardLayout from '../DashboardLayout';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import "bootstrap/dist/css/bootstrap.min.css";
 
-const CrewVendors = () => {
+const ViewVendors = () => {
     const [vendors, setVendors] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    
 
     useEffect(() => {
         const fetchVendors = async () => {
+            setLoading(true);
             try {
-                const token = localStorage.getItem('token');
-                const response = await axios.get('http://localhost:8000/api/crew/vendors/', {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+                const response = await axios.get("http://127.0.0.1:8000/api/vendors/");
                 setVendors(response.data);
-                setLoading(false);
             } catch (err) {
-                setError('Failed to load vendors.');
+                setError("Error fetching vendors.");
+            } finally {
                 setLoading(false);
-                console.error('Error fetching vendors:', err);
             }
         };
-
         fetchVendors();
     }, []);
 
-    if (loading) {
-        return <DashboardLayout><div className="alert alert-info">Loading vendors...</div></DashboardLayout>;
-    }
-
-    if (error) {
-        return <DashboardLayout><div className="alert alert-danger">{error}</div></DashboardLayout>;
-    }
-
     return (
-        <DashboardLayout>
-            <h2>Crew Vendors</h2>
-            <div className="list-group">
-                {vendors.map(vendor => (
-                    <div key={vendor.id} className="list-group-item">
-                        <strong>{vendor.name}</strong> - Contact: {vendor.contact_person}
-                    </div>
-                ))}
+        <>
+            <div className="container mt-4">
+                {loading && <div className="alert alert-info text-center">Loading...</div>}
+                {error && <div className="alert alert-danger text-center">{error}</div>}
+                {!loading && !error && vendors.length === 0 && (
+                    <div className="alert alert-warning text-center">No vendors available.</div>
+                )}
+
+                <div className="row">
+                    {vendors.map((vendor) => (
+                        <div key={vendor.id} className="col-lg-4 col-md-6 col-sm-12 mb-4">
+                            <div className="card shadow-sm border-0 rounded">
+                                <div className="card-body">
+                                    <h5 className="card-title text-primary">{vendor.name}</h5>
+                                    <p className="card-text"><strong>Contact:</strong> {vendor.contact_info}</p>
+                                    <p className="card-text">
+                                        <strong>Services:</strong> {vendor.services_offered || "No services listed"}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
-        </DashboardLayout>
+        </>
     );
 };
 
-export default CrewVendors;
+export default ViewVendors;

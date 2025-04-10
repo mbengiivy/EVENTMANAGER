@@ -1,62 +1,100 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-const Login = () => {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const navigate = useNavigate();
+const Login = ({ updateLoginState }) => { // Accept updateLoginState as a prop
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        setError('');
+        setError("");
 
         try {
-            const response = await axios.post('http://localhost:8000/api/login/', {
+            const response = await axios.post("http://localhost:8000/api/login/", {
                 username,
                 password,
             });
 
-            const token = response.data?.token;
-            const role = response.data?.role;
-            const companycode = response.data?.companycode; // Get company code
+            console.log("✅ Login API response:", response.data);
 
-            if (token) {
-                localStorage.setItem('token', token);
-            } else {
-                setError("Authentication failed: No token received.");
-                return;
+            if (!response.data?.token || !response.data?.role) {
+                throw new Error("Authentication failed: Missing token or role.");
             }
 
-            if (role) {
-                localStorage.setItem('role', role);
+            // Extract necessary details
+            const { id, token, role, companycode } = response.data;
+
+            // Store user details in localStorage
+            localStorage.setItem("token", token);
+            localStorage.setItem("role", role);
+            localStorage.setItem("userId", id.toString());
+
+            if (companycode) {
+                localStorage.setItem("companycode", companycode);
             }
 
-            if (companycode) { // Store company code
-                localStorage.setItem('companycode', companycode);
-            }
+            // Update login state
+            updateLoginState(role, token);
 
-            navigate('/');
+            // Redirect based on role
+            const redirectPath = role === "captain" ? "/captain-dashboard" : role === "crew" ? "/crew-dashboard" : "/";
+            navigate(redirectPath);
         } catch (err) {
-            setError(err.response?.data?.error || 'Login failed.');
+            console.error("❌ Login error:", err);
+            setError(err.response?.data?.error || err.message || "Login failed.");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     return (
-        <div>
-            <h2>Login</h2>
-            {error && <p style={{ color: 'red' }}>{error}</p>}
-            <form onSubmit={handleSubmit}>
-                <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-                <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-                <button type="submit">Login
-                    {loading ? 'Creating...' : 'Loggin In'}
-                </button>
-            </form>
+        <div className="container d-flex justify-content-center align-items-center min-vh-100">
+            <div className="card shadow-lg p-4" style={{ width: "100%", maxWidth: "400px" }}>
+                <h2 className="text-center mb-4">Login</h2>
+
+                {/* Error Message */}
+                {error && <div className="alert alert-danger text-center">{error}</div>}
+
+                <form onSubmit={handleSubmit}>
+                    <div className="mb-3">
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            required
+                        />
+                    </div>
+
+                    <div className="mb-3">
+                        <input
+                            type="password"
+                            className="form-control"
+                            placeholder="Password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                    </div>
+
+                    <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+                        {loading ? (
+                            <>
+                                <span className="spinner-border spinner-border-sm me-2"></span>
+                                Logging In...
+                            </>
+                        ) : (
+                            "Login"
+                        )}
+                    </button>
+                </form>
+            </div>
         </div>
     );
 };

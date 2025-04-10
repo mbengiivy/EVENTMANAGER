@@ -2,7 +2,8 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth import get_user_model
 from vendors.models import Vendor
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
+
 
 
 class User(AbstractUser):
@@ -19,14 +20,16 @@ class Event(models.Model):
     date = models.DateTimeField()
     location = models.CharField(max_length=255, blank=True, null=True) #Added this field.
     status = models.CharField(max_length=50, default='Pending')
-    chief_planner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_events', limit_choices_to={'role': 'captain'})
-    eventbrite_id = models.CharField(max_length=255, blank=True, null=True)
+    chief_planner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_events',null=True, blank= True, limit_choices_to={'role': 'captain'})
     companycode = models.CharField(max_length=20) #added company code.
+    template = models.JSONField(default=list, blank=True)
+    field_values = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
         return self.name
 
 class Task(models.Model):
+    name = models.CharField(max_length=50, default='Assign')
     description = models.TextField()
     status = models.CharField(max_length=50, default='Pending')
     assigned_to = models.ForeignKey(User, on_delete=models.CASCADE, related_name='assigned_tasks', limit_choices_to={'role': 'crew'})
@@ -44,3 +47,4 @@ class EventTemplate(models.Model):
 
     def __str__(self):
         return self.event_type
+    

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import DashboardLayout from '../DashboardLayout';
 
 const TaskManagement = () => {
     const [tasks, setTasks] = useState([]);
@@ -13,21 +12,23 @@ const TaskManagement = () => {
     const [users, setUsers] = useState([]);
     const [editTask, setEditTask] = useState(null);
     const [error, setError] = useState('');
+    //eslint-disable-next-line
+    const [eventMap, setEventMap] = useState({});
+
+    const fetchTasks = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get('http://localhost:8000/api/tasks/', {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setTasks(response.data);
+        } catch (err) {
+            setError('Failed to load tasks.');
+            console.error('Error fetching tasks:', err);
+        }
+    };
 
     useEffect(() => {
-        const fetchTasks = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                const response = await axios.get('http://localhost:8000/api/tasks/', {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                setTasks(response.data);
-            } catch (err) {
-                setError('Failed to load tasks.');
-                console.error('Error fetching tasks:', err);
-            }
-        };
-
         const fetchEvents = async () => {
             try {
                 const token = localStorage.getItem('token');
@@ -35,6 +36,9 @@ const TaskManagement = () => {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setEvents(response.data);
+                const map = {};
+                response.data.forEach(event => (map[event.id] = event.name));
+                setEventMap(map);
             } catch (err) {
                 setError('Failed to load events.');
                 console.error('Error fetching events:', err);
@@ -44,7 +48,7 @@ const TaskManagement = () => {
         const fetchUsers = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get('http://localhost:8000/api/users/?role=crew', { // Filter for crew
+                const response = await axios.get('http://localhost:8000/api/users/?role=crew', {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setUsers(response.data);
@@ -62,15 +66,19 @@ const TaskManagement = () => {
     const handleCreateTask = async () => {
         try {
             const token = localStorage.getItem('token');
-            await axios.post('http://localhost:8000/api/tasks/', {
-                name: newTaskName,
-                description: newTaskDescription,
-                event: newTaskEvent,
-                assigned_to: newTaskAssignedTo,
-            }, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            fetchTasks(); // Refresh tasks
+            await axios.post(
+                'http://localhost:8000/api/tasks/',
+                {
+                    name: newTaskName,
+                    description: newTaskDescription,
+                    event: newTaskEvent,
+                    assigned_to: newTaskAssignedTo,
+                },
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            fetchTasks();
             setShowCreateForm(false);
             setNewTaskName('');
             setNewTaskDescription('');
@@ -85,15 +93,19 @@ const TaskManagement = () => {
     const handleEditTask = async () => {
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`http://localhost:8000/api/tasks/${editTask.id}/`, {
-                name: editTask.name,
-                description: editTask.description,
-                event: editTask.event,
-                assigned_to: editTask.assigned_to,
-            }, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            fetchTasks(); // Refresh tasks
+            await axios.put(
+                `http://localhost:8000/api/tasks/${editTask.id}/`,
+                {
+                    name: editTask.name,
+                    description: editTask.description,
+                    event: editTask.event,
+                    assigned_to: editTask.assigned_to,
+                },
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            fetchTasks();
             setEditTask(null);
         } catch (err) {
             setError('Failed to update task.');
@@ -107,73 +119,117 @@ const TaskManagement = () => {
             await axios.delete(`http://localhost:8000/api/tasks/${taskId}/`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            fetchTasks(); // Refresh tasks
+            fetchTasks();
         } catch (err) {
             setError('Failed to delete task.');
             console.error('Error deleting task:', err);
         }
     };
 
-    const fetchTasks = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:8000/api/tasks/', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setTasks(response.data);
-        } catch (err) {
-            setError('Failed to load tasks.');
-            console.error('Error fetching tasks:', err);
-        }
-    };
-
     return (
-        <DashboardLayout>
-            {error && <div>{error}</div>}
+        <>
+            <div className="container mt-4">
+                {error && <div className="alert alert-danger">{error}</div>}
 
-            <button onClick={() => setShowCreateForm(true)}>Create Task</button>
-
-            {showCreateForm && (
-                <div>
-                    <input type="text" placeholder="Task Name" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} />
-                    <input type="text" placeholder="Description" value={newTaskDescription} onChange={(e) => setNewTaskDescription(e.target.value)} />
-                    <select value={newTaskEvent} onChange={(e) => setNewTaskEvent(e.target.value)}>
-                        <option value="">Select Event</option>
-                        {events.map(event => <option key={event.id} value={event.id}>{event.name}</option>)}
-                    </select>
-                    <select value={newTaskAssignedTo} onChange={(e) => setNewTaskAssignedTo(e.target.value)}>
-                        <option value="">Select Crew Member</option>
-                        {users.map(user => <option key={user.id} value={user.id}>{user.username}</option>)}
-                    </select>
-                    <button onClick={handleCreateTask}>Create</button>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h2 className="text-primary">Task Management</h2>
+                    <button className="btn btn-primary" onClick={() => setShowCreateForm(true)}>
+                        + Create Task
+                    </button>
                 </div>
-            )}
 
-            {editTask && (
-                <div>
-                    <input type="text" value={editTask.name} onChange={(e) => setEditTask({ ...editTask, name: e.target.value })} />
-                    <input type="text" value={editTask.description} onChange={(e) => setEditTask({ ...editTask, description: e.target.value })} />
-                    <select value={editTask.event} onChange={(e) => setEditTask({ ...editTask, event: e.target.value })}>
-                        {events.map(event => <option key={event.id} value={event.id}>{event.name}</option>)}
-                    </select>
-                    <select value={editTask.assigned_to} onChange={(e) => setEditTask({ ...editTask, assigned_to: e.target.value })}>
-                        {users.map(user => <option key={user.id} value={user.id}>{user.username}</option>)}
-                    </select>
-                    <button onClick={handleEditTask}>Update</button>
-                </div>
-            )}
+                {showCreateForm && (
+                    <div className="card p-3 mb-4 shadow-sm">
+                        <h4 className="mb-3">Create New Task</h4>
+                        <div className="mb-3">
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Task Name"
+                                value={newTaskName}
+                                onChange={(e) => setNewTaskName(e.target.value)}
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Description"
+                                value={newTaskDescription}
+                                onChange={(e) => setNewTaskDescription(e.target.value)}
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <select className="form-select" value={newTaskEvent} onChange={(e) => setNewTaskEvent(e.target.value)}>
+                                <option value="">Select Event</option>
+                                {events.map((event) => (
+                                    <option key={event.id} value={event.id}>
+                                        {event.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="mb-3">
+                            <select className="form-select" value={newTaskAssignedTo} onChange={(e) => setNewTaskAssignedTo(e.target.value)}>
+                                <option value="">Select Crew Member</option>
+                                {users.map((user) => (
+                                    <option key={user.id} value={user.id}>
+                                        {user.username}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <button className="btn btn-success" onClick={handleCreateTask}>
+                            Create
+                        </button>
+                    </div>
+                )}
 
-            <h2>Task List</h2>
-            <ul>
-                {tasks.map(task => (
-                    <li key={task.id}>
-                        {task.name} - {task.description} - Event: {task.event} - Assigned to: {task.assigned_to}
-                        <button onClick={() => setEditTask(task)}>Edit</button>
-                        <button onClick={() => handleDeleteTask(task.id)}>Delete</button>
-                    </li>
-                ))}
-            </ul>
-        </DashboardLayout>
+                {editTask && (
+                    <div className="card p-3 mb-4 shadow-sm">
+                        <h4>Edit Task</h4>
+                        <div className="mb-3">
+                            <input
+                                type="text"
+                                className="form-control"
+                                value={editTask.name}
+                                onChange={(e) => setEditTask({ ...editTask, name: e.target.value })}
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <input
+                                type="text"
+                                className="form-control"
+                                value={editTask.description}
+                                onChange={(e) => setEditTask({ ...editTask, description: e.target.value })}
+                            />
+                        </div>
+                        <button className="btn btn-warning" onClick={handleEditTask}>
+                            Update
+                        </button>
+                    </div>
+                )}
+
+                <h3 className="mb-3">Task List</h3>
+                <ul className="list-group">
+                    {tasks.map((task) => (
+                        <li key={task.id} className="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{task.name}</strong> - {task.description} | Event: {task.event_name || 'Unknown'} | Assigned to: {task.assigned_to.username}
+                            </div>
+                            <div>
+                                <button className="btn btn-secondary btn-sm me-2" onClick={() => setEditTask(task)}>
+                                    Edit
+                                </button>
+                                <button className="btn btn-danger btn-sm" onClick={() => handleDeleteTask(task.id)}>
+                                    Delete
+                                </button>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        </>
     );
 };
 

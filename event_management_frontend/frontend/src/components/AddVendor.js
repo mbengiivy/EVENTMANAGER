@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from '../api';
 
+
 const AddVendor = () => {
     const [name, setName] = useState('');
     const [contactInfo, setContactInfo] = useState('');
@@ -20,24 +21,74 @@ const AddVendor = () => {
             setContactInfo('');
             setServicesOffered('');
         } catch (error) {
-            setError(error.response?.data?.detail || 'Failed to add vendor.');
+            console.error("Vendor creation error:", error.response?.data || error.message);
+            if (error.response?.data) {
+                const errorData = error.response.data;
+                const firstKey = Object.keys(errorData)[0];
+                setError(`${firstKey}: ${errorData[firstKey]}`);
+            } else {
+                setError('Failed to add vendor.');
+            }
             setSuccess(false);
+        
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div>
-            <h2>Add Vendor</h2>
-            {error && <p style={{ color: 'red' }}>{error}</p>}
-            {success && <p style={{ color: 'green' }}>Vendor added successfully!</p>}
-            <form onSubmit={handleSubmit}>
-                <input type="text" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} required />
-                <textarea placeholder="Contact Info" value={contactInfo} onChange={(e) => setContactInfo(e.target.value)} required />
-                <textarea placeholder="Services Offered" value={servicesOffered} onChange={(e) => setServicesOffered(e.target.value)} required />
-                <button type="submit">Add Vendor</button>
-                {loading ? 'Creating...' : 'Add Vendor'}
-            </form>
-        </div>
+        <>
+            <div className="container mt-4">
+                <div className="card shadow-lg p-4 border-0 rounded">
+                    <h2 className="text-center mb-4">Add Vendor</h2>
+                    {error && <div className="alert alert-danger text-center">{error}</div>}
+                    {success && <div className="alert alert-success text-center">Vendor added successfully!</div>}
+                    <form onSubmit={handleSubmit}>
+                        <div className="mb-3">
+                            <label htmlFor="vendorName" className="form-label fw-bold">Name</label>
+                            <input
+                                type="text"
+                                id="vendorName"
+                                className="form-control border-2"
+                                placeholder="Enter vendor name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <label htmlFor="contactInfo" className="form-label fw-bold">Contact Info</label>
+                            <textarea
+                                id="contactInfo"
+                                className="form-control border-2"
+                                rows="3"
+                                placeholder="Enter contact information"
+                                value={contactInfo}
+                                onChange={(e) => setContactInfo(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <label htmlFor="servicesOffered" className="form-label fw-bold">Services Offered</label>
+                            <textarea
+                                id="servicesOffered"
+                                className="form-control border-2"
+                                rows="3"
+                                placeholder="Enter services offered"
+                                value={servicesOffered}
+                                onChange={(e) => setServicesOffered(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="d-grid">
+                            <button type="submit" className="btn btn-primary fw-bold py-2" disabled={loading}>
+                                {loading ? 'Creating...' : 'Add Vendor'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </>
     );
 };
 

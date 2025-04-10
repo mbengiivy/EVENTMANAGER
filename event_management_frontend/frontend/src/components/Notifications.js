@@ -1,47 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const Notifications = ({ userId }) => {
     const [notifications, setNotifications] = useState([]);
     const [showNotification, setShowNotification] = useState(false);
     const [notificationMessage, setNotificationMessage] = useState('');
+    const socketRef = useRef(null); // Use useRef to hold the socket instance
 
     useEffect(() => {
         if (!userId) {
-            return; // Don't connect if userId is not available
+            return;
         }
-        const socket = new WebSocket(`ws://localhost:8000/ws/notifications/${userId}/`);
 
-        socket.onopen = () => {
+        socketRef.current = new WebSocket(`ws://localhost:8000/ws/notifications/${userId}/`);
+
+        socketRef.current.onopen = () => {
             console.log('WebSocket connection established.');
         };
 
-        socket.onmessage = (event) => {
+        socketRef.current.onmessage = (event) => {
             const data = JSON.parse(event.data);
             setNotifications((prevNotifications) => [...prevNotifications, data.notification]);
             setNotificationMessage(data.notification);
             setShowNotification(true);
 
-            // Hide the notification after a few seconds
             setTimeout(() => {
                 setShowNotification(false);
-            }, 5000); // 5 seconds
+            }, 5000);
         };
 
-        socket.onclose = () => {
+        socketRef.current.onclose = () => {
             console.log('WebSocket connection closed.');
         };
 
-        socket.onerror = (error) => {
+        socketRef.current.onerror = (error) => {
             console.error('WebSocket error:', error);
         };
 
         return () => {
-            socket.close();
+            if (socketRef.current) {
+                socketRef.current.close();
+            }
         };
     }, [userId]);
 
     return (
-        <div>
+        <div className="container mt-4">
             {showNotification && (
                 <div
                     className="alert alert-info"
@@ -55,7 +58,18 @@ const Notifications = ({ userId }) => {
                     {notificationMessage}
                 </div>
             )}
-            {/* You can also display a list of all notifications here */}
+            {notifications.length > 0 && (
+                <div className="mt-4">
+                    <h3 className="mb-3">Notifications History</h3>
+                    <ul className="list-group">
+                        {notifications.map((notification, index) => (
+                            <li key={index} className="list-group-item">
+                                {notification}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
         </div>
     );
 };
