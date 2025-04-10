@@ -1,10 +1,9 @@
 import os
-
-from channels.auth import AuthMiddlewareStack
-from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'your_project_name.settings') # Replace your_project_name
+from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.auth import AuthMiddlewareStack
+from event_management_backend.routing import websocket_urlpatterns # Replace your_app_name
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'event_management_backend.settings') # Replace your_project_name
 
 import event_management_backend.routing # Replace your_app_name
 

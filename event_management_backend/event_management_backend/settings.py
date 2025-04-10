@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'events',
     'vendors',
     'channels',
+
 ]
 
 MIDDLEWARE = [
